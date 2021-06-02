@@ -1,0 +1,70 @@
+#!/usr/bin/env python
+from dotenv import load_dotenv
+import robot.errors
+from robotac.modules.integrationutils import (
+    print_sp,
+    check_and_update_exisitng_test_cases,
+    check_robot_tests_compatibility,
+    add_new_test_cases_to_test_rail
+)
+from robotac.modules.robotutils import get_robot_finder
+from robotac.modules.testrailutils import TestRailAPIClient
+from robotac.modules.errors import *
+
+
+def main():
+    try:
+        # Load env
+        load_dotenv(dotenv_path='./.env', verbose=True)
+        check_envs()
+
+        # Get TR client
+        client = TestRailAPIClient()
+
+        # Get robot tests
+        finder = get_robot_finder()
+
+        print_sp("Checking test cases syntax")
+        check_robot_tests_compatibility(finder.robot_files)
+
+        print_sp("Checking and updating test cases to that has tag")
+        check_and_update_exisitng_test_cases(finder.get_tests(has_tag=True), client)
+
+        print_sp("Adding new test cases to Test Rail")
+        add_new_test_cases_to_test_rail(finder.get_tests(has_tag=False), client)
+    except robot.errors.DataError as e:
+        print("Please check your robot file syntax")
+        print(e)
+    except FileNotFoundError as e:
+        print("Please check your robot files exists in Test suite")
+        print(e)
+    except TestRailTestCaseNotFound as e:
+        print("Looks like test associated in tag does not exist anymore, suggested to fix it manually.")
+        print(e)
+    except Exception as e:
+        print("Unexpected error.")
+        print(e)
+
+
+if __name__ == '__main__':
+    print(
+        """
+        Robot - TestRail Integration promotes test case as code concept.
+        Testcase as code:
+        - Tests are written in Robot tests.
+        - Tests are closer to SUT and gets revision along with SUT.
+        - Integration script keeps robot test cases and test rail test in-sync.
+        This Integration Scripts 
+        Does following this:
+        1. Adds robot test cases to test rail
+        2. Updates if robot test case changes
+        3. Copy test rail test tag to robot test case
+        Expect following criteria to complete execution better.
+        1. Unique section names across project.
+        2. Unique test case name within section.
+        """
+    )
+    main()
+
+
+
